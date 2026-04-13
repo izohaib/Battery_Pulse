@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Batterypulse" parent="android:Theme.Material.Light.NoActionBar" />
+
+<!--    &lt;!&ndash; Splash theme for API 26-30 (no restricted attributes) &ndash;&gt;-->
+<!--    <style name="Theme.Batterypulse.Splash" parent="Theme.SplashScreen">-->
+<!--        <item name="postSplashScreenTheme">@style/Theme.Batterypulse</item>-->
+<!--    </style>-->
+
+</resources>
