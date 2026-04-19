@@ -11,7 +11,6 @@ class BatteryRepositoryImpl(
 
     override fun getBatteryInfo(): Flow<BatteryInfo> {
         try {
-            dataSource.register()
             val info: Flow<BatteryInfo> = dataSource.batteryInfo
             return info
         } catch (e: Exception) {

@@ -1,6 +1,6 @@
 package com.example.battery_pulse.feature.battery.domain.models
 
-class BatteryInfo(
+data class BatteryInfo(
     val percent: Int = 0,
     val isCharging: Boolean = false,
     val plugType: String = "Unplugged",
@@ -10,5 +10,4 @@ class BatteryInfo(
     val currentMicroAmps: Int = 0,
     val chargingWatts: Float = 0f,
     val timeToFullMinutes: Int? = null
-) {
-}
+)

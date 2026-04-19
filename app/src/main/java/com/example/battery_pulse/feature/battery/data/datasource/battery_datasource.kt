@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
+import android.util.Log
 import com.example.battery_pulse.feature.battery.domain.models.BatteryInfo
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,8 @@ class BatteryDataSource(private val context: Context) {
 
     private val _batteryInfo = MutableStateFlow(BatteryInfo())
     val batteryInfo: StateFlow<BatteryInfo> = _batteryInfo.asStateFlow()
+
+    private var avgCurrentMa = 0.0
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context?, intent: Intent?) {
@@ -64,16 +67,45 @@ class BatteryDataSource(private val context: Context) {
         val bm = context.getSystemService(Context.BATTERY_SERVICE) as BatteryManager
         val currentMicroAmps = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
 
-        val volts = voltage / 1000f
-        val amps = abs(currentMicroAmps) / 1_000_000f
-        val watts = volts * amps
+// Store signed mA directly — positive=charging, negative=discharging
+// Your device reports backwards (negative when charging), so flip it
+//        val signedCurrentMa: Int = if (isCharging) abs(currentMicroAmps) else -abs(currentMicroAmps)
 
-        val timeToFull: Int? = if (isCharging && currentMicroAmps > 0) {
-            val capacity = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
-            val fullCap = if (percent > 0) (capacity * 100) / percent else 0
-            val remainingUAh = (fullCap * (100 - percent)) / 100
-            val currentPerMinute = currentMicroAmps / 60
-            if (currentPerMinute > 0) remainingUAh / currentPerMinute else null // guard here
+        val rawCurrentMa = if (isCharging) abs(currentMicroAmps) else -abs(currentMicroAmps)
+
+
+// exponential moving average (stable)
+        avgCurrentMa = if (avgCurrentMa == 0.0) {
+            rawCurrentMa.toDouble()
+        } else {
+            (0.9 * avgCurrentMa) + (0.1 * rawCurrentMa)
+        }
+
+        val signedCurrentMa = avgCurrentMa.toInt()
+
+        val volts = voltage / 1000f
+        val watts = volts * (signedCurrentMa / 1000f)  // signed watts, V * A
+
+
+
+        val timeToFull: Int? = if (isCharging && signedCurrentMa > 50) {
+            val chargeCounter = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CHARGE_COUNTER)
+
+            val fullCapUAh = if (chargeCounter > 0 && percent > 0) {
+                (chargeCounter.toLong() * 100L) / percent.toLong()
+            } else {
+                4000000L
+            }
+
+            val remainingUAh = fullCapUAh * (100 - percent) / 100
+
+            val currentUAhPerMinute = (signedCurrentMa * 1000.0) / 60.0
+
+            val minutes = if (currentUAhPerMinute > 0) {
+                (remainingUAh / currentUAhPerMinute).toInt()
+            } else null
+
+            if (minutes != null && minutes in 1..1440) minutes else null
         } else null
 
         return BatteryInfo(
@@ -83,7 +115,7 @@ class BatteryDataSource(private val context: Context) {
             health = health,
             temperatureCelsius = temperature,
             voltageMilliVolts = voltage,
-            currentMicroAmps = currentMicroAmps,
+            currentMicroAmps = signedCurrentMa,
             chargingWatts = watts,
             timeToFullMinutes = timeToFull
         )

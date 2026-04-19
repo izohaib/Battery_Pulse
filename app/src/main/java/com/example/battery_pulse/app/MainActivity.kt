@@ -12,12 +12,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.ActivityCompat
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.battery_pulse.core.ui.theme.BatterypulseTheme
 import com.example.battery_pulse.app.ui.main.MainScreen
 import com.example.battery_pulse.feature.battery.data.datasource.BatteryDataSource
+import com.example.battery_pulse.feature.battery.data.notification_service.BatteryService
 import com.example.battery_pulse.feature.battery.data.repositoryImpl.BatteryRepositoryImpl
-import com.example.battery_pulse.feature.battery.data.service.BatteryService
 import com.example.battery_pulse.feature.battery.domain.usecase.GetBatteryInfoUseCase
 import com.example.battery_pulse.feature.battery.presentaion.BatteryViewModel
 
@@ -55,15 +54,10 @@ class MainActivity : ComponentActivity() {
 //        // Ask battery optimization exemption
 //        requestBatteryOptimizationExemption()
 
-//        val filter = IntentFilter().apply {
-//            addAction(Intent.ACTION_BATTERY_CHANGED)
-//            addAction(Intent.ACTION_POWER_CONNECTED)
-//            addAction(Intent.ACTION_POWER_DISCONNECTED)
-//        }
-//        registerReceiver(PowerReceiver(), filter)
 
-//        val intent = Intent(this, BatteryService::class.java)
-//        startForegroundService(intent)
+
+        val intent = Intent(this, BatteryService::class.java)
+        startForegroundService(intent)
         // 2. Keep splash visible until ViewModel says data is ready
 //        splashScreen.setKeepOnScreenCondition {
 //            !viewModel.isReady  // splash stays while isReady == false

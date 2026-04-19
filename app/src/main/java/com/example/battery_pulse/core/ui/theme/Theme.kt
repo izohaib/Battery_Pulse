@@ -84,6 +84,7 @@ private val DarkColorScheme = darkColorScheme(
     surfaceContainerHighest = dark_surfaceContainerHighest,
 )
 
+
 @Composable
 fun BatterypulseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),

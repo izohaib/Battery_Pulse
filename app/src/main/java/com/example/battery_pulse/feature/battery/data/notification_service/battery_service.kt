@@ -1,7 +1,6 @@
-package com.example.battery_pulse.feature.battery.data.service
+package com.example.battery_pulse.feature.battery.data.notification_service
 
 
-import android.app.AlarmManager
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -14,7 +13,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.battery_pulse.R
@@ -25,8 +23,12 @@ class BatteryService : Service() {
 
     private var alertShown = false
 
+    companion object {
+        const val FOREGROUND_CHANNEL_ID = "battery_foreground"
+        const val ALERT_CHANNEL_ID = "battery_alert"
+    }
 
-    // when battery will change or charge disconnected this will run and we launch it in
+    // when battery will change or charge disconnected this will run, we launch it in
     // onStartCommand of foreground
     private val batteryReceiver = object : BroadcastReceiver() {
 
@@ -60,18 +62,23 @@ class BatteryService : Service() {
                         else -> "Unknown"
                     }
 
-                    // If charger was unplugged, stop everything
-                    if (!isCharging && plugged == 0) {
-                        stopSelf()
-                        return
-                    }
+                    // If charger was unplugged, stop entire Service and cancel notification
+//                    if (!isCharging && plugged == 0) {
+//                        val manager = ContextCompat.getSystemService(this@BatteryService, NotificationManager::class.java)
+//                        manager?.cancel(2)
+//                        stopSelf() // stop entire service
+//                        return
+//                    }
 
                     // Update live foreground notification
-                    updateNotification("$percent% • $pluggedStatus • $healthStatus")
+                    updateForegroundNotification("$percent% • $pluggedStatus • $healthStatus")
 
                     // Battery reached 100% — stop service
                     if (percent >= 100) {
-                        showAlertNotification("Battery Full!", "Your battery is fully charged — unplug your charger")
+                        showAlertNotification(
+                            "Battery Full!",
+                            "Your battery is fully charged — unplug your charger"
+                        )
                         stopSelf()
                         return
                     }
@@ -89,9 +96,29 @@ class BatteryService : Service() {
                     }
                 }
 
-                Intent.ACTION_POWER_DISCONNECTED -> {
-                    stopSelf()
+                Intent.ACTION_POWER_CONNECTED -> {
+                    // user plugged charger during grace period → cancel the stop timer
+                    stopHandler.removeCallbacks(stopRunnable)
+                    alertShown = false
+                    updateForegroundNotification("🔌 Charger connected")
                 }
+
+                // don't stop service
+                Intent.ACTION_POWER_DISCONNECTED -> {
+                    // If charger was unplugged, stop entire Service and cancel notification
+                    val manager = ContextCompat.getSystemService(
+                        this@BatteryService,
+                        NotificationManager::class.java
+                    )
+                    manager?.cancel(2)
+//                        stopSelf() // stop entire service
+//                        return
+//
+                    // start 1-hour timer
+                    stopHandler.postDelayed(stopRunnable, 60 * 60 * 1000L)
+                }
+
+
             }
         }
     }
@@ -99,27 +126,71 @@ class BatteryService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
+
+        Log.d("Created Notification Channel", "Creating Foreground Service")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(1, createNotification("🔌 Charger connected"))
+        Log.d("Starting Foreground Service", "Starting Foreground Service")
+        alertShown = false
+
+        try {
+            unregisterReceiver(batteryReceiver)
+        } catch (e: Exception) {
+        }
+
+        stopHandler.removeCallbacks(stopRunnable)
+
+        //internally called manager?.notify(1, notification)
+        startForeground(1, createForegroundNotification("🔌 Charger connected"))
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_BATTERY_CHANGED)
+            addAction(Intent.ACTION_POWER_CONNECTED)
             addAction(Intent.ACTION_POWER_DISCONNECTED)
         }
         registerReceiver(batteryReceiver, filter)
 
-        return START_NOT_STICKY
+        return START_STICKY
     }
 
-    private fun updateNotification(text: String) {
+    private fun updateForegroundNotification(text: String) {
         val manager = ContextCompat.getSystemService(this, NotificationManager::class.java)
-        manager?.notify(1, createNotification(text))
+        manager?.notify(1, createForegroundNotification(text))
+    }
+
+    fun createNotificationChannel() {
+        val manager = ContextCompat.getSystemService(this, NotificationManager::class.java)
+
+
+        val foregroundChannel = NotificationChannel(
+            FOREGROUND_CHANNEL_ID,
+            "Zohaib Ahmad",
+            NotificationManager.IMPORTANCE_LOW
+        )
+
+        val alertChannel = NotificationChannel(
+            ALERT_CHANNEL_ID,
+            "Battery Alerts",
+            NotificationManager.IMPORTANCE_HIGH
+        )
+
+        manager?.createNotificationChannel(foregroundChannel)
+        manager?.createNotificationChannel(alertChannel)
+    }
+
+    fun createForegroundNotification(text: String): Notification {
+        return NotificationCompat.Builder(this, FOREGROUND_CHANNEL_ID)
+            .setContentTitle("Battery Pulse")
+            .setContentText(text)
+            .setContentIntent(getPendingIntent())
+            .setOngoing(true)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .build()
     }
 
     private fun showAlertNotification(title: String, message: String) {
-        val notification = NotificationCompat.Builder(this, "ID")
+        val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
             .setContentTitle(title)
             .setContentText(message)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -131,34 +202,38 @@ class BatteryService : Service() {
         manager?.notify(2, notification)
     }
 
-    fun createNotificationChannel() {
-        val channel = NotificationChannel(
-            "ID",
-            "Zohaib Ahmad",
-            NotificationManager.IMPORTANCE_DEFAULT
-        )
-        val manager = ContextCompat.getSystemService(this, NotificationManager::class.java)
-        manager!!.createNotificationChannel(channel)
-    }
-
-    fun createNotification(text: String): Notification {
-        return NotificationCompat.Builder(this, "ID")
-            .setContentTitle("Battery Pulse")
-            .setContentText(text)
-            .setContentIntent(getPendingIntent())
-            .setOngoing(true)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .build()
-    }
-
     fun getPendingIntent(): PendingIntent {
         val intent = Intent(this, MainActivity::class.java)
         return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
     }
 
+    private val stopHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val stopRunnable = Runnable {
+        val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
+        if (!bm.isCharging) {
+            val manager = ContextCompat.getSystemService(this, NotificationManager::class.java)
+//            manager?.cancel(2)
+            stopSelf()
+        }
+    }
+
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
+        if (!bm.isCharging) {
+            // wait 1 hour, then stop if still not charging
+            stopHandler.postDelayed(stopRunnable, 60 * 60 * 1000L)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
-        try { unregisterReceiver(batteryReceiver) } catch (e: Exception) { }
+        stopHandler.removeCallbacks(stopRunnable)
+        try {
+            unregisterReceiver(batteryReceiver)
+        } catch (e: Exception) {
+        }
     }
 
     override fun onBind(p0: Intent?): IBinder? = null
@@ -168,7 +243,6 @@ class BatteryService : Service() {
 //        createNotificationChannel()
 //        startForeground(1, createNotification("🔌 Charger connected"))
 //    }
-
 //class BatteryService : Service() {
 //
 //    companion object {

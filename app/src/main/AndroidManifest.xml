@@ -33,13 +33,13 @@
 
 
 
-        <receiver
-            android:name="com.example.battery_pulse.feature.battery.data.service.PowerReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>
-            </intent-filter>
-        </receiver>
+<!--        <receiver-->
+<!--            android:name="com.example.battery_pulse.feature.battery.data.notification_service.PowerReceiver"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>-->
+<!--            </intent-filter>-->
+<!--        </receiver>-->
 
         <!-- Boot Receiver -->
 <!--        <receiver-->
@@ -50,12 +50,13 @@
 <!--            </intent-filter>-->
 <!--        </receiver>-->
 
-        <!-- Service -->
+        <!-- Foreground Service -->
         <service
-            android:name=".feature.battery.data.service.BatteryService"
+            android:name=".feature.battery.data.notification_service.BatteryService"
             android:foregroundServiceType="specialUse"
             android:exported="false"
-            android:stopWithTask="false" />
+            android:stopWithTask="false"
+        />
 
     </application>
 

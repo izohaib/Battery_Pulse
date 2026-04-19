@@ -5,6 +5,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.battery_pulse.feature.about.AboutScreen
 import com.example.battery_pulse.feature.app_usage.presentation.AppUsageScreen
 import com.example.battery_pulse.feature.battery.presentaion.BatteryScreen
 import com.example.battery_pulse.feature.battery.presentaion.BatteryViewModel
@@ -31,8 +32,9 @@ fun AppNavHost(navController: NavHostController, viewModel: BatteryViewModel, mo
         composable(route = Screen.Setting.route) {
             SettingScreen(navController = navController)
         }
-
-
+        composable(route = Screen.About.route) {
+            AboutScreen(navController = navController)
+        }
 //        composable(
 //            route = Screen.Detail.route + "?text={text}",
 //            arguments = listOf(
