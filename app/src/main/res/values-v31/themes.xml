@@ -1,12 +1,12 @@
+<!-- for android versions 12+ api(31) android gave us native splash screen to override
+ it we need this-->
+
 <resources>
 
     <style name="Theme.Batterypulse" parent="android:Theme.Material.Light.NoActionBar" />
 
-
     <style name="Theme.Batterypulse.Splash" parent="Theme.SplashScreen">
-
         <item name="android:windowSplashScreenBackground">#000000</item>
-
         <!-- Your app icon (should be adaptive icon) -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <!-- After splash, switch to your real app theme -->

@@ -1,6 +1,7 @@
 package com.example.battery_pulse.feature.battery.data.notification_service
 
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -17,6 +18,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.battery_pulse.R
 import com.example.battery_pulse.app.MainActivity
+import com.example.battery_pulse.feature.battery.domain.models.BatteryInfo
+import com.example.battery_pulse.feature.on_display.presentation.ChargingDisplayActivity
 
 
 class BatteryService : Service() {
@@ -26,11 +29,17 @@ class BatteryService : Service() {
     companion object {
         const val FOREGROUND_CHANNEL_ID = "battery_foreground"
         const val ALERT_CHANNEL_ID = "battery_alert"
+        const val CHARGING_DISPLAY_CHANNEL_ID = "charging_display"
+        const val CHARGING_DISPLAY_NOTIF_ID = 99
+
     }
+
+    private var lastPercent = 0  // track latest percent
 
     // when battery will change or charge disconnected this will run, we launch it in
     // onStartCommand of foreground
     private val batteryReceiver = object : BroadcastReceiver() {
+
 
         override fun onReceive(context: Context?, intent: Intent?) {
 
@@ -40,6 +49,8 @@ class BatteryService : Service() {
                     val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0)
                     val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
                     val percent = (level * 100) / scale
+                    lastPercent = percent
+                    Log.d("BatteryService", "BATTERY_CHANGED: percent=$percent, lastPercent=$lastPercent")
 
                     val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
                     val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING
@@ -94,6 +105,16 @@ class BatteryService : Service() {
                             "Battery is at $percent% — unplug your charger"
                         )
                     }
+
+
+                    // sends a message to anyone in the app who is listening
+                    // ADD: send live update to ChargingDisplayActivity if it's open
+                    val updateIntent = Intent("ACTION_CHARGING_UPDATE").apply {
+                        putExtra("percent", percent)
+                    }
+                    // shouting listen it whole app
+                    sendBroadcast(updateIntent)
+
                 }
 
                 Intent.ACTION_POWER_CONNECTED -> {
@@ -101,6 +122,11 @@ class BatteryService : Service() {
                     stopHandler.removeCallbacks(stopRunnable)
                     alertShown = false
                     updateForegroundNotification("🔌 Charger connected")
+
+                    Log.d("BatteryService", "POWER_CONNECTED fired — lastPercent=$lastPercent")
+                    Log.d("BatteryService", "Calling launchChargingDisplay...")
+                    // ADD: launch charging display notification
+                    launchChargingDisplay(lastPercent)
                 }
 
                 // don't stop service
@@ -114,6 +140,14 @@ class BatteryService : Service() {
 //                        stopSelf() // stop entire service
 //                        return
 //
+
+                    // ADD: cancel charging display notification
+                    manager?.cancel(CHARGING_DISPLAY_NOTIF_ID)
+
+                    // ADD: tell activity to close itself
+                    sendBroadcast(Intent("ACTION_DISMISS_CHARGING_DISPLAY"))
+
+
                     // start 1-hour timer
                     stopHandler.postDelayed(stopRunnable, 60 * 60 * 1000L)
                 }
@@ -175,8 +209,67 @@ class BatteryService : Service() {
             NotificationManager.IMPORTANCE_HIGH
         )
 
+        val chargingDisplayChannel = NotificationChannel(
+            CHARGING_DISPLAY_CHANNEL_ID,
+            "Charging Display",
+            NotificationManager.IMPORTANCE_HIGH  // must be HIGH for fullScreenIntent
+        ).apply {
+            lockscreenVisibility = Notification.VISIBILITY_PUBLIC // show on lockscreen
+        }
+
+        manager?.createNotificationChannel(chargingDisplayChannel)
         manager?.createNotificationChannel(foregroundChannel)
         manager?.createNotificationChannel(alertChannel)
+
+    }
+
+
+
+    @SuppressLint("FullScreenIntentPolicy")
+    private fun launchChargingDisplay(percent: Int) {
+        Log.d("BatteryService", "launchChargingDisplay() called with percent=$percent")
+
+        val activityIntent = Intent(this, ChargingDisplayActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            )
+            putExtra("percent", percent)
+        }
+
+        // Approach 1 — try direct startActivity first
+        // Works when: app is in foreground OR device allows background launches
+        try {
+            startActivity(activityIntent)
+            Log.d("BatteryService", "startActivity() called directly")
+        } catch (e: Exception) {
+            Log.e("BatteryService", "startActivity failed: ${e.message}")
+        }
+
+        // Approach 2 — fullScreenIntent notification (works on screen off / lockscreen)
+        // Both run together — activity launch + notification as backup
+        val fullScreenPendingIntent = PendingIntent.getActivity(
+            this,
+            CHARGING_DISPLAY_NOTIF_ID,
+            activityIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val notification = NotificationCompat.Builder(this, CHARGING_DISPLAY_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle("Battery Charging")
+            .setContentText("$percent% • Tap to view")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setFullScreenIntent(fullScreenPendingIntent, true)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .build()
+
+        val manager = ContextCompat.getSystemService(this, NotificationManager::class.java)
+        manager?.notify(CHARGING_DISPLAY_NOTIF_ID, notification)
+        Log.d("BatteryService", "Notification fired with ID=$CHARGING_DISPLAY_NOTIF_ID")
     }
 
     fun createForegroundNotification(text: String): Notification {

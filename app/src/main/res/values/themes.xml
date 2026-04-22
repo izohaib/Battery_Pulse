@@ -7,4 +7,14 @@
 <!--        <item name="postSplashScreenTheme">@style/Theme.Batterypulse</item>-->
 <!--    </style>-->
 
+    <!-- 2nd theme for Charging Display pure black fullscreen -->
+    <style name="Theme.ChargingDisplay" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <item name="android:navigationBarColor">@android:color/black</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
 </resources>
+

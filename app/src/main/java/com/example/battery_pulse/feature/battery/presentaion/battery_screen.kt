@@ -118,6 +118,8 @@ fun BatteryContent(data: BatteryInfo) {
     }
 }
 
+
+// Components
 @Composable
 private fun SectionLabel(title: String) {
     Text(
