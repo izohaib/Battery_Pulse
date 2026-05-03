@@ -3,27 +3,41 @@ package com.example.battery_pulse.app
 import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.content.Intent
-import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.ActivityCompat
+import androidx.core.view.WindowCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.example.battery_pulse.core.ui.theme.BatterypulseTheme
 import com.example.battery_pulse.app.ui.main.MainScreen
 import com.example.battery_pulse.feature.battery.data.datasource.BatteryDataSource
-import com.example.battery_pulse.feature.battery.data.notification_service.BatteryService
+import com.example.battery_pulse.core.Service.BatteryService
 import com.example.battery_pulse.feature.battery.data.repositoryImpl.BatteryRepositoryImpl
 import com.example.battery_pulse.feature.battery.domain.usecase.GetBatteryInfoUseCase
 import com.example.battery_pulse.feature.battery.presentaion.BatteryViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
 //import com.example.battery_pulse.feature.battery.data.service.PowerReceiver
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    fun dimBrightness(brightnessLevel: Float?) {
+        val params : WindowManager.LayoutParams = window.attributes
+        params.screenBrightness = brightnessLevel ?: 0.2f
+        window.attributes = params
+        Log.d("DimHide", "dimBrightness set to: ${params.screenBrightness}")
+
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -32,12 +46,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
 
-        // 1. CREATE dependencies first (DI setup)
-        val dataSource = BatteryDataSource(applicationContext)
-        val repository = BatteryRepositoryImpl(dataSource)
-        val useCase = GetBatteryInfoUseCase(repository)
 
-        val viewmodel = BatteryViewModel(useCase, repository)
+//        val controller = WindowCompat.getInsetsController(window, window.decorView)
+//
+//// hide status bar
+//        controller.hide(WindowInsetsCompat.Type.statusBars())
+
+
+        // 1. CREATE dependencies first (DI setup)
+//        val dataSource = BatteryDataSource(applicationContext)
+//        val repository = BatteryRepositoryImpl(dataSource)
+//        val useCase = GetBatteryInfoUseCase(repository)
+//
+//        val viewModel = BatteryViewModel(useCase, repository)
 
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -48,6 +69,8 @@ class MainActivity : ComponentActivity() {
             )
 
         }
+
+
 
 
 
@@ -78,18 +101,19 @@ class MainActivity : ComponentActivity() {
 //
 //        // Ask battery optimization exemption
 //        requestBatteryOptimizationExemption()
-
-
-
+        
         val intent = Intent(this, BatteryService::class.java)
         startForegroundService(intent)
         // 2. Keep splash visible until ViewModel says data is ready
 //        splashScreen.setKeepOnScreenCondition {
 //            !viewModel.isReady  // splash stays while isReady == false
 //        }
+
+
         setContent {
             BatterypulseTheme {
-                MainScreen(viewmodel)
+                val viewModel: BatteryViewModel = hiltViewModel()
+                MainScreen(viewModel)
             }
         }
     }

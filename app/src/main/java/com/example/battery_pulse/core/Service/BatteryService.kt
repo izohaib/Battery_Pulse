@@ -1,4 +1,4 @@
-package com.example.battery_pulse.feature.battery.data.notification_service
+package com.example.battery_pulse.core.Service
 
 
 import android.annotation.SuppressLint
@@ -14,14 +14,15 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.example.battery_pulse.R
 import com.example.battery_pulse.app.MainActivity
-import com.example.battery_pulse.feature.battery.domain.models.BatteryInfo
-import com.example.battery_pulse.feature.on_display.presentation.ChargingDisplayActivity
+import com.example.battery_pulse.feature.on_display.presentation.fullScreenIntentActivity.ChargingDisplayActivity
 
-
+// for foreground service and full screen intent launching
 class BatteryService : Service() {
 
     private var alertShown = false
@@ -300,7 +301,7 @@ class BatteryService : Service() {
         return PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE)
     }
 
-    private val stopHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val stopHandler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
         val bm = getSystemService(BATTERY_SERVICE) as BatteryManager
         if (!bm.isCharging) {
@@ -331,142 +332,3 @@ class BatteryService : Service() {
 
     override fun onBind(p0: Intent?): IBinder? = null
 }
-
-//    fun createNotification() {
-//        createNotificationChannel()
-//        startForeground(1, createNotification("🔌 Charger connected"))
-//    }
-//class BatteryService : Service() {
-//
-//    companion object {
-//        const val CHANNEL_ID = "battery_channel"
-//        const val FOREGROUND_NOTIF_ID = 1
-//        const val ALERT_NOTIF_ID = 2
-//    }
-//
-//    private var isCharging = false
-//    private var alertShown = false
-//
-//    private val batteryReceiver = object : BroadcastReceiver() {
-//        override fun onReceive(context: Context?, intent: Intent?) {
-//            when (intent?.action) {
-//
-//                Intent.ACTION_POWER_CONNECTED -> {
-//                    isCharging = true
-//                    alertShown = false
-//                    updateForegroundNotification("🔌 Device is charging")
-//                }
-//
-//                Intent.ACTION_POWER_DISCONNECTED -> {
-//                    isCharging = false
-//                    alertShown = false
-//                    updateForegroundNotification("Battery monitor active")
-//                    getNotificationManager().cancel(ALERT_NOTIF_ID)
-//                }
-//
-//                Intent.ACTION_BATTERY_CHANGED -> {
-//                    val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0)
-//                    val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
-//                    val percent = (level * 100) / scale
-//
-//                    val target = getSharedPreferences("battery_prefs", MODE_PRIVATE)
-//                        .getInt("target_percent", 89)
-//
-//                    if (isCharging && percent >= target && !alertShown) {
-//                        alertShown = true
-//                        showAlertNotification(percent)
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    override fun onCreate() {
-//        super.onCreate()
-//        createNotificationChannel()
-//    }
-//
-//    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-//        startForeground(FOREGROUND_NOTIF_ID, buildNotification("Battery monitor active"))
-//
-//        val filter = IntentFilter().apply {
-//            addAction(Intent.ACTION_POWER_CONNECTED)
-//            addAction(Intent.ACTION_POWER_DISCONNECTED)
-//            addAction(Intent.ACTION_BATTERY_CHANGED)
-//        }
-//        registerReceiver(batteryReceiver, filter)
-//
-//        return START_STICKY // OS will restart service if killed
-//    }
-//
-//    // Called when app is swiped — return START_STICKY so OS restarts
-//    override fun onTaskRemoved(rootIntent: Intent?) {
-//        super.onTaskRemoved(rootIntent)
-//        val restartIntent = Intent(applicationContext, BatteryService::class.java)
-//        val pendingIntent = PendingIntent.getService(
-//            applicationContext, 1, restartIntent, PendingIntent.FLAG_IMMUTABLE
-//        )
-//        val alarmManager = getSystemService(ALARM_SERVICE) as AlarmManager
-//        alarmManager.set(
-//            AlarmManager.ELAPSED_REALTIME,
-//            SystemClock.elapsedRealtime() + 500,
-//            pendingIntent
-//        )
-//    }
-//
-//    private fun showAlertNotification(percent: Int) {
-//        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-//            .setContentTitle("Battery Limit Reached!")
-//            .setContentText("Battery is at $percent% — unplug your charger")
-//            .setSmallIcon(R.drawable.ic_launcher_foreground)
-//            .setPriority(NotificationCompat.PRIORITY_HIGH)
-//            .setAutoCancel(true)
-//            .build()
-//        getNotificationManager().notify(ALERT_NOTIF_ID, notification)
-//    }
-//
-//    private fun updateForegroundNotification(text: String) {
-//        getNotificationManager().notify(FOREGROUND_NOTIF_ID, buildNotification(text))
-//    }
-//
-//    private fun buildNotification(text: String): Notification {
-//        val intent = PendingIntent.getActivity(
-//            this, 0,
-//            Intent(this, MainActivity::class.java),
-//            PendingIntent.FLAG_IMMUTABLE
-//        )
-//        return NotificationCompat.Builder(this, CHANNEL_ID)
-//            .setContentTitle("Battery Pulse")
-//            .setContentText(text)
-//            .setSmallIcon(R.drawable.ic_launcher_foreground)
-//            .setContentIntent(intent)
-//            .setOngoing(true)
-//            .build()
-//    }
-//
-//    private fun createNotificationChannel() {
-//        val channel = NotificationChannel(
-//            CHANNEL_ID, "Battery Monitor",
-//            NotificationManager.IMPORTANCE_DEFAULT
-//        )
-//        getNotificationManager().createNotificationChannel(channel)
-//    }
-//
-//    private fun getNotificationManager() =
-//        getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-//
-//    override fun onDestroy() {
-//        super.onDestroy()
-//        try { unregisterReceiver(batteryReceiver) } catch (e: Exception) { }
-//    }
-//
-//    override fun onBind(intent: Intent?): IBinder? = null
-//}
-//
-//class BootReceiver : BroadcastReceiver() {
-//    override fun onReceive(context: Context, intent: Intent?) {
-//        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
-//            context.startForegroundService(Intent(context, BatteryService::class.java))
-//        }
-//    }
-//}

@@ -13,9 +13,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
+import javax.inject.Inject
 import kotlin.math.abs
 
-class BatteryDataSource(private val context: Context) {
+class BatteryDataSource @Inject constructor(private val context: Context) {
 
     private val _batteryInfo = MutableStateFlow(BatteryInfo())
     val batteryInfo: StateFlow<BatteryInfo> = _batteryInfo.asStateFlow()

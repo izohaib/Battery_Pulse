@@ -1,7 +1,7 @@
 package com.example.battery_pulse.feature.battery.presentaion
 
 import android.os.Build
-import android.os.Build.MANUFACTURER
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -17,7 +17,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.battery_pulse.feature.battery.domain.models.BatteryInfo
 import androidx.compose.runtime.getValue
-import com.example.battery_pulse.core.Utils.formatMinutes
+import com.example.battery_pulse.core.utils.Utils.formatMinutes
 import com.example.battery_pulse.feature.battery.presentaion.components.HeroSection
 import kotlin.math.abs
 
@@ -80,6 +80,7 @@ fun BatteryContent(data: BatteryInfo) {
     ) {
         MetricCard("Temperature", "%.1f".format(data.temperatureCelsius), "°C", Modifier.weight(1f))
         MetricCard("Voltage", "${data.voltageMilliVolts}", "mV", Modifier.weight(1f))
+        Log.d("BatteryScreen", "BatteryContent: ${data.voltageMilliVolts}")
     }
 
     Spacer(Modifier.height(10.dp))

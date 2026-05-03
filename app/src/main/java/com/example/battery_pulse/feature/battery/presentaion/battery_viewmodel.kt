@@ -5,14 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.example.battery_pulse.feature.battery.data.repositoryImpl.BatteryRepositoryImpl
 import com.example.battery_pulse.feature.battery.domain.repository.BatteryRepository
 import com.example.battery_pulse.feature.battery.domain.usecase.GetBatteryInfoUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class BatteryViewModel(
+@HiltViewModel
+class BatteryViewModel @Inject constructor(
     private val getBatteryInfoUseCase: GetBatteryInfoUseCase,
     private val repository: BatteryRepository
 ) : ViewModel() {

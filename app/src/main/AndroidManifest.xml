@@ -16,10 +16,20 @@
         tools:ignore="FullScreenIntentPolicy" />
 <!--    <uses-permission android:name="android.permission.WAKE_LOCK" />-->
 
-<!--    floating window permisison-->
-<!--    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />-->
+<!--    floating window permisison (display over other apps) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <uses-permission android:name="android.permission.FLASHLIGHT" />
+
+
+    <!-- For App Usages-->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+
 
     <application
+        android:name=".app.ui.main.BatteryPulseApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -40,7 +50,7 @@
         </activity>
 
         <activity
-            android:name=".feature.on_display.presentation.ChargingDisplayActivity"
+            android:name=".feature.on_display.presentation.fullScreenIntentActivity.ChargingDisplayActivity"
             android:theme="@style/Theme.ChargingDisplay"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
@@ -70,7 +80,7 @@
 
         <!-- Foreground Service -->
         <service
-            android:name=".feature.battery.data.notification_service.BatteryService"
+            android:name=".core.Service.BatteryService"
             android:foregroundServiceType="specialUse"
             android:exported="false"
             android:stopWithTask="false"
