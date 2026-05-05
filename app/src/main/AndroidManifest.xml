@@ -28,6 +28,9 @@
         tools:ignore="ProtectedPermissions" />
 
 
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="PackageVisibilityPolicy,QueryAllPackagesPermission" />
+
     <application
         android:name=".app.ui.main.BatteryPulseApp"
         android:allowBackup="true"

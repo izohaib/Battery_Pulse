@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -62,4 +64,18 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
 
     implementation("androidx.core:core-splashscreen:1.0.0")
+
+    //datastore
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
+
+    // Alternatively - without an Android dependency.
+    implementation("androidx.datastore:datastore-preferences-core:1.2.1")
+
+    //hilt
+    implementation("com.google.dagger:hilt-android:2.59.2")
+    ksp("com.google.dagger:hilt-android-compiler:2.59.2")
+    implementation("androidx.hilt:hilt-navigation-compose:1.3.0")
+
+    //Accompnist (Drawable to Painter)
+    implementation("com.google.accompanist:accompanist-drawablepainter:0.37.3")
 }
