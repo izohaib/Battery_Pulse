@@ -132,6 +132,16 @@ class AppUsageRepositoryImpl @Inject constructor(
                         } catch (e: Exception) {
                             "EXCEPTION: ${e.message}"
                         }
+                    } |category ${
+                        try {
+                            val info = pm.getApplicationInfo(
+                                stat.packageName,
+                                PackageManager.GET_META_DATA
+                            ).category
+                            info.toString() 
+                        } catch (e: Exception) {
+                            "EXCEPTION: ${e.message}"
+                        }
                     }"
                 )
 

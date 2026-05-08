@@ -101,3 +101,6 @@ val dark_surfaceContainerHighest = Color(0xFF253328)
 
 val ColorScheme.glow: Color
     get() = Color(0xFFFFC107)
+
+val ColorScheme.primaryDark: Color
+    get() = Color(0xFFA3EC70)

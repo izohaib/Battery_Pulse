@@ -21,8 +21,23 @@ import androidx.core.content.ContextCompat
 import com.example.battery_pulse.R
 import com.example.battery_pulse.app.MainActivity
 import com.example.battery_pulse.feature.on_display.presentation.fullScreenIntentActivity.ChargingDisplayActivity
-
+import com.example.battery_pulse.feature.history.domain.repository.ChargingHistoryRepository
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 // for foreground service and full screen intent launching
+
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface BatteryServiceEntryPoint {
+    fun chargingHistoryRepository(): ChargingHistoryRepository
+}
 class BatteryService : Service() {
 
     private var alertShown = false
@@ -39,6 +54,16 @@ class BatteryService : Service() {
 
     // when battery will change or charge disconnected this will run, we launch it in
     // onStartCommand of foreground
+
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    private fun getHistoryRepository(): ChargingHistoryRepository {
+        return EntryPointAccessors.fromApplication(
+            applicationContext,
+            BatteryServiceEntryPoint::class.java
+        ).chargingHistoryRepository()
+    }
     private val batteryReceiver = object : BroadcastReceiver() {
 
 
@@ -119,6 +144,17 @@ class BatteryService : Service() {
                 }
 
                 Intent.ACTION_POWER_CONNECTED -> {
+
+                    serviceScope.launch {
+                        val repo = getHistoryRepository()
+                        if (!repo.hasOpenSession()) {
+                            repo.startSession(
+                                startTime = System.currentTimeMillis(),
+                                startBattery = lastPercent
+                            )
+                        }
+                    }
+
                     // user plugged charger during grace period → cancel the stop timer
                     stopHandler.removeCallbacks(stopRunnable)
                     alertShown = false
@@ -130,8 +166,16 @@ class BatteryService : Service() {
                     launchChargingDisplay(lastPercent)
                 }
 
-                // don't stop service
+
                 Intent.ACTION_POWER_DISCONNECTED -> {
+
+                    serviceScope.launch {
+                        getHistoryRepository().endSession(
+                            endTime = System.currentTimeMillis(),
+                            endBattery = lastPercent
+                        )
+                    }
+
                     // If charger was unplugged, stop entire Service and cancel notification
                     val manager = ContextCompat.getSystemService(
                         this@BatteryService,

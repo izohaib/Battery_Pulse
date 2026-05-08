@@ -30,6 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.battery_pulse.core.navigation.AppNavHost
 import com.example.battery_pulse.core.navigation.NavigationItem
@@ -49,12 +50,6 @@ val navigationItems = listOf(
         route = Screen.Display.route
     ),
 
-
-    NavigationItem(
-        title = "Setting",
-        icon = Icons.Default.Settings,
-        route = Screen.Setting.route
-    ),
 
     NavigationItem(
         title = "History",
@@ -77,58 +72,67 @@ fun MainScreen(
     viewModel: BatteryViewModel
 ) {
     val navController: NavHostController = rememberNavController()
-
     var showMenu by rememberSaveable { mutableStateOf(false) }
+
+    // observe current route
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // find matching Screen object to read its flags
+    val allScreens = listOf(Screen.Home, Screen.Display, Screen.Setting, Screen.History, Screen.AppUsage, Screen.About)
+    val currentScreen = allScreens.find { it.route == currentRoute }
+
+    val showTopBar = currentScreen?.showTopAppBar ?: true
+    val showBottomBar = currentScreen?.showBottomNavBar ?: true
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Battery Pulse") },
-                actions = {
-                    IconButton(
-                        onClick = {
-                            showMenu = !showMenu
+            if (showTopBar) {
+                TopAppBar(
+                    title = { Text("Battery Pulse") },
+                    actions = {
+                        IconButton(onClick = { showMenu = !showMenu }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Overflow Menu"
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Overflow Menu"
-                        )
-                    }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate(Screen.Setting.route)
+                                }
+                            )
 
-                    // The actual Menu
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        // Option 1: About Screen
-                        DropdownMenuItem(
-                            text = { Text("About") },
-                            onClick = {
-                                showMenu = false
-                                navController.navigate(Screen.About.route) // Replace with your actual route
-                            }
-                        )
-
-                        // Option 2: Help/Feedback
-                        DropdownMenuItem(
-                            text = { Text("Help") },
-                            onClick = {
-                                showMenu = false
-                                // Handle action or navigation
-                            }
-                        )
-                    }
-
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary,
-                ),
-            )
+                            DropdownMenuItem(
+                                text = { Text("About") },
+                                onClick = {
+                                    showMenu = false
+                                    navController.navigate(Screen.About.route)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Help") },
+                                onClick = { showMenu = false }
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        titleContentColor = MaterialTheme.colorScheme.primary,
+                    )
+                )
+            }
         },
         bottomBar = {
-            BottomNavigationBar(navController = navController)
+            if (showBottomBar) {
+                BottomNavigationBar(navController = navController)
+            }
         }
     ) { paddingValues ->
         AppNavHost(
@@ -137,7 +141,6 @@ fun MainScreen(
             modifier = Modifier.padding(paddingValues)
         )
     }
-
 }
 
 @Composable

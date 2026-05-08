@@ -34,6 +34,7 @@
     <application
         android:name=".app.ui.main.BatteryPulseApp"
         android:allowBackup="true"
+        android:appCategory="productivity"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
