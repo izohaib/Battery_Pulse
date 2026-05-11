@@ -193,6 +193,7 @@ class BatteryService : Service() {
                     // sends a message to anyone in the app who is listening
                     // ADD: send live update to ChargingDisplayActivity if it's open
                     val updateIntent = Intent("ACTION_CHARGING_UPDATE").apply {
+                        setPackage(packageName)
                         putExtra("percent", percent)
                     }
                     // shouting listen it whole app
@@ -248,7 +249,9 @@ class BatteryService : Service() {
                     manager?.cancel(CHARGING_DISPLAY_NOTIF_ID)
 
                     // ADD: tell activity to close itself
-                    sendBroadcast(Intent("ACTION_DISMISS_CHARGING_DISPLAY"))
+                    sendBroadcast(Intent("ACTION_DISMISS_CHARGING_DISPLAY").apply {
+                        setPackage(packageName)
+                    })
 
 
                     // start 1-hour timer
