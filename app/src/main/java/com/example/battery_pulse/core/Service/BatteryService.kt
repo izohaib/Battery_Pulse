@@ -253,7 +253,6 @@ class BatteryService : Service() {
                         setPackage(packageName)
                     })
 
-
                     // start 1-hour timer
                     stopHandler.postDelayed(stopRunnable, 60 * 60 * 1000L)
                 }
