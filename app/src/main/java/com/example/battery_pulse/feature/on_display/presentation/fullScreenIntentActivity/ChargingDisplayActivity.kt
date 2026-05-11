@@ -29,8 +29,7 @@ class ChargingDisplayActivity : ComponentActivity() {
 //    private var percent by mutableIntStateOf(0)
 
     private val receiver = object : BroadcastReceiver() {
-        overri
-        de fun onReceive(context: Context?, intent: Intent?) {
+        override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 // live percent update from BatteryService
 //                "ACTION_CHARGING_UPDATE" -> {
