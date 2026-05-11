@@ -13,6 +13,7 @@ import com.example.battery_pulse.feature.history.presentaion.HistoryScreen
 import com.example.battery_pulse.feature.on_display.presentation.DisplayScreen
 import com.example.battery_pulse.feature.setting.presentation.SettingScreen
 
+
 @Composable
 fun AppNavHost(navController: NavHostController, viewModel: BatteryViewModel, modifier: Modifier) {
 

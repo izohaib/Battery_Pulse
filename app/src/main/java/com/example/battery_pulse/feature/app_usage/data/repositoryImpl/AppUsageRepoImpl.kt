@@ -32,44 +32,61 @@ class AppUsageRepositoryImpl @Inject constructor(
     }
 
 //    override suspend fun getTodayUsage(): List<AppUsageStat> {
-//        val usageStatsManager =
-//            ContextCompat.getSystemService(context, UsageStatsManager::class.java)
+//
 //        val pm = context.packageManager
+//        val merged = dataSource.getTodayUsage()
 //
-//        val startOfDay = Calendar.getInstance().apply {
-//            set(Calendar.HOUR_OF_DAY, 0)
-//            set(Calendar.MINUTE, 0)
-//            set(Calendar.SECOND, 0)
-//            set(Calendar.MILLISECOND, 0)
-//        }.timeInMillis
-//        val now = System.currentTimeMillis()
-//
-//        // This API respects your exact time range unlike queryUsageStats
-//        val aggregated: Map<String, UsageStats> = usageStatsManager
-//            ?.queryAndAggregateUsageStats(startOfDay, now)
-//            ?: emptyMap()
-//
-//        val result: List<AppUsageStat> = aggregated.values
+//        val result: List<AppUsageStat> = merged.values // .values make map to list with only value
 //            .filter { it.totalTimeInForeground > 0 }
 //            .map { stat ->
+//
 //                val appName = try {
 //                    val info = pm.getApplicationInfo(stat.packageName, 0)
 //                    pm.getApplicationLabel(info).toString()
+////                    Log.d("APP_Name", "Package: ${stat.packageName} | AppName: $name")
+//
 //                } catch (e: Exception) {
+//                    // Better fallback: use second-to-last segment if last is generic
 //                    val segments = stat.packageName.split(".")
 //                    val last = segments.lastOrNull() ?: stat.packageName
 //                    val secondLast = segments.getOrNull(segments.size - 2)
+//
+//                    // If last segment is generic like "android", use second-to-last
 //                    val raw = if (last.lowercase() in listOf("android", "app", "main", "core")) {
 //                        secondLast ?: last
 //                    } else last
+//
 //                    raw.replaceFirstChar { it.uppercase() }
 //                }
 //
 //                val icon = try {
 //                    pm.getApplicationIcon(stat.packageName)
 //                } catch (e: Exception) {
-//                    null
+//                    null  // Return null, not default icon — UI already handles null with ?.let
 //                }
+//                Log.d(
+//                    "NAME_DEBUG", "pkg=${stat.packageName} | label=${
+//                        try {
+//                            val info = pm.getApplicationInfo(
+//                                stat.packageName,
+//                                PackageManager.GET_META_DATA
+//                            )
+//                            pm.getApplicationLabel(info).toString()
+//                        } catch (e: Exception) {
+//                            "EXCEPTION: ${e.message}"
+//                        }
+//                    } |category ${
+//                        try {
+//                            val info = pm.getApplicationInfo(
+//                                stat.packageName,
+//                                PackageManager.GET_META_DATA
+//                            ).category
+//                            info.toString()
+//                        } catch (e: Exception) {
+//                            "EXCEPTION: ${e.message}"
+//                        }
+//                    }"
+//                )
 //
 //                AppUsageStat(
 //                    packageName = stat.packageName,
@@ -82,87 +99,51 @@ class AppUsageRepositoryImpl @Inject constructor(
 //            .sortedByDescending { it.totalTimeInForegroundMs }
 //
 //        result.forEach { app ->
-//            Log.d("APP_RESULT", "Name: ${app.appName}, Package: ${app.packageName}, Time: ${app.totalTimeInForegroundMs}")
+//            Log.d(
+//                "APP_RESULT",
+//                "Name: ${app.appName}, Package: ${app.packageName}, Time: ${app.totalTimeInForegroundMs}"
+//            )
 //        }
 //
 //        return result
+//
 //    }
 
     override suspend fun getTodayUsage(): List<AppUsageStat> {
-
         val pm = context.packageManager
-        val merged = dataSource.getTodayUsage()
+        val merged: Map<String, Long> = dataSource.getTodayUsage()
 
-        val result: List<AppUsageStat> = merged.values // .values make map to list with only value
-            .filter { it.totalTimeInForeground > 0 }
-            .map { stat ->
-
+        return merged
+            .filter { (_, timeMs) -> timeMs > 0 }
+            .map { (packageName, timeMs) ->
                 val appName = try {
-                    val info = pm.getApplicationInfo(stat.packageName, 0)
+                    val info = pm.getApplicationInfo(packageName, 0)
                     pm.getApplicationLabel(info).toString()
-//                    Log.d("APP_Name", "Package: ${stat.packageName} | AppName: $name")
-
                 } catch (e: Exception) {
-                    // Better fallback: use second-to-last segment if last is generic
-                    val segments = stat.packageName.split(".")
-                    val last = segments.lastOrNull() ?: stat.packageName
+                    val segments = packageName.split(".")
+                    val last = segments.lastOrNull() ?: packageName
                     val secondLast = segments.getOrNull(segments.size - 2)
-
-                    // If last segment is generic like "android", use second-to-last
                     val raw = if (last.lowercase() in listOf("android", "app", "main", "core")) {
                         secondLast ?: last
                     } else last
-
                     raw.replaceFirstChar { it.uppercase() }
                 }
 
                 val icon = try {
-                    pm.getApplicationIcon(stat.packageName)
+                    pm.getApplicationIcon(packageName)
                 } catch (e: Exception) {
-                    null  // Return null, not default icon — UI already handles null with ?.let
+                    null
                 }
-                Log.d(
-                    "NAME_DEBUG", "pkg=${stat.packageName} | label=${
-                        try {
-                            val info = pm.getApplicationInfo(
-                                stat.packageName,
-                                PackageManager.GET_META_DATA
-                            )
-                            pm.getApplicationLabel(info).toString()
-                        } catch (e: Exception) {
-                            "EXCEPTION: ${e.message}"
-                        }
-                    } |category ${
-                        try {
-                            val info = pm.getApplicationInfo(
-                                stat.packageName,
-                                PackageManager.GET_META_DATA
-                            ).category
-                            info.toString() 
-                        } catch (e: Exception) {
-                            "EXCEPTION: ${e.message}"
-                        }
-                    }"
-                )
+
 
                 AppUsageStat(
-                    packageName = stat.packageName,
+                    packageName = packageName,
                     appName = appName,
                     icon = icon,
-                    totalTimeInForegroundMs = stat.totalTimeInForeground,
+                    totalTimeInForegroundMs = timeMs,
                     estimatedBatteryPercent = 0f
                 )
             }
             .sortedByDescending { it.totalTimeInForegroundMs }
-
-        result.forEach { app ->
-            Log.d(
-                "APP_RESULT",
-                "Name: ${app.appName}, Package: ${app.packageName}, Time: ${app.totalTimeInForegroundMs}"
-            )
-        }
-
-        return result
-
     }
 }

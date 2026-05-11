@@ -1,5 +1,6 @@
 package com.example.battery_pulse.feature.history.presentaion
 
+import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -18,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,10 +41,7 @@ fun HistoryScreen(
     val scope = rememberCoroutineScope()
 
     Box(modifier = Modifier.fillMaxSize()) {
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+
 
         when (val state = uiState) {
             is HistoryUiState.Loading -> {
@@ -89,8 +88,9 @@ fun HistoryScreen(
                             val result = snackbarHostState.showSnackbar(
                                 message = "Session deleted",
                                 actionLabel = "Undo",
-                                duration = SnackbarDuration.Short
+                                duration = SnackbarDuration.Long
                             )
+                            Log.d("HistoryScreen", "Snackbar result: $result")
                             if (result == SnackbarResult.ActionPerformed) {
                                 viewModel.undoDelete(session)
                             }
@@ -99,6 +99,11 @@ fun HistoryScreen(
                 )
             }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -319,34 +324,39 @@ private fun BatteryRangeBar(
     Column {
 
         // ── Labels above bar ──────────────────────────────────────────────
-        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-            val tw = maxWidth
-
+        if (labelsOverlap) {
             Text(
-                text = "${startPercent}%",
+                text = "${startPercent}% → ${endPercent}%",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = colorScheme.onSurface,
-                modifier = Modifier.offset(
-                    x = if (labelsOverlap)
-                        (tw * startFraction - 20.dp).coerceAtLeast(0.dp)
-                    else
-                        (tw * startFraction).coerceAtMost(tw - 36.dp)
-                )
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
+        } else {
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val tw = maxWidth
 
-            Text(
-                text = "${endPercent}%",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = colorScheme.onSurface,
-                modifier = Modifier.offset(
-                    x = if (labelsOverlap)
-                        (tw * endFraction).coerceAtMost(tw - 28.dp)
-                    else
-                        (tw * endFraction - 14.dp).coerceIn(0.dp, tw - 28.dp)
+                Text(
+                    text = "${startPercent}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.onSurface,
+                    modifier = Modifier.offset(
+                        x = (tw * startFraction).coerceAtMost(tw - 36.dp)
+                    )
                 )
-            )
+
+                Text(
+                    text = "${endPercent}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colorScheme.onSurface,
+                    modifier = Modifier.offset(
+                        x = (tw * endFraction - 14.dp).coerceIn(0.dp, tw - 28.dp)
+                    )
+                )
+            }
         }
 
         Spacer(Modifier.height(4.dp))
@@ -356,30 +366,29 @@ private fun BatteryRangeBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(20.dp)
-                .clip(RoundedCornerShape(6.dp))          // clips all children
-                .background(colorScheme.surfaceContainerHighest) // empty track
+                .clip(RoundedCornerShape(6.dp))
+                .background(colorScheme.surfaceContainerHighest)
         ) {
             val tw = maxWidth
-            val cornerPx = 6.dp  // matches outer clip radius
+            val cornerPx = 6.dp
 
             // Zone 1 — pre-charge (0 → start%)
-            // Rounded only on the left side (outer clip handles it),
-            // flat on the right where charged zone begins
             if (startFraction > 0f) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(tw * startFraction)
-                        .background(colorScheme.primary.copy(
-                            red = (colorScheme.primary.red * 1.3f).coerceAtMost(1f),
-                            green = (colorScheme.primary.green * 1.3f).coerceAtMost(1f),
-                            blue = (colorScheme.primary.blue * 1.3f).coerceAtMost(1f)
-                        ))
+                        .background(
+                            colorScheme.primary.copy(
+                                red = (colorScheme.primary.red * 1.3f).coerceAtMost(1f),
+                                green = (colorScheme.primary.green * 1.3f).coerceAtMost(1f),
+                                blue = (colorScheme.primary.blue * 1.3f).coerceAtMost(1f)
+                            )
+                        )
                 )
             }
 
             // Zone 2 — charged (start% → end%)
-            // Flat on left (joins pre-charge), rounded on right end only
             if (endFraction > startFraction) {
                 Box(
                     modifier = Modifier
@@ -394,9 +403,7 @@ private fun BatteryRangeBar(
                                 bottomEnd = cornerPx
                             )
                         )
-                        .background(
-                            colorScheme.primary.copy(0.8f)
-                        )
+                        .background(colorScheme.primary.copy(0.8f))
                 )
             }
         }

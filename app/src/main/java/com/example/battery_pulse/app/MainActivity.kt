@@ -13,6 +13,9 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.core.app.ActivityCompat
 import androidx.core.view.WindowCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -23,6 +26,8 @@ import com.example.battery_pulse.core.Service.BatteryService
 import com.example.battery_pulse.feature.battery.data.repositoryImpl.BatteryRepositoryImpl
 import com.example.battery_pulse.feature.battery.domain.usecase.GetBatteryInfoUseCase
 import com.example.battery_pulse.feature.battery.presentaion.BatteryViewModel
+import com.example.battery_pulse.feature.setting.domain.model.ThemeMode
+import com.example.battery_pulse.feature.setting.presentation.SettingViewModel
 import dagger.hilt.android.AndroidEntryPoint
 
 //import com.example.battery_pulse.feature.battery.data.service.PowerReceiver
@@ -31,7 +36,7 @@ import dagger.hilt.android.AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     fun dimBrightness(brightnessLevel: Float?) {
-        val params : WindowManager.LayoutParams = window.attributes
+        val params: WindowManager.LayoutParams = window.attributes
         params.screenBrightness = brightnessLevel ?: 0.2f
         window.attributes = params
         Log.d("DimHide", "dimBrightness set to: ${params.screenBrightness}")
@@ -44,7 +49,6 @@ class MainActivity : ComponentActivity() {
 //        val splashScreen = installSplashScreen()
 
         enableEdgeToEdge()
-
 
 
 //        val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -101,7 +105,7 @@ class MainActivity : ComponentActivity() {
 //
 //        // Ask battery optimization exemption
 //        requestBatteryOptimizationExemption()
-        
+
         val intent = Intent(this, BatteryService::class.java)
         startForegroundService(intent)
         // 2. Keep splash visible until ViewModel says data is ready
@@ -111,7 +115,20 @@ class MainActivity : ComponentActivity() {
 
 
         setContent {
-            BatterypulseTheme {
+
+            val settingsViewModel: SettingViewModel = hiltViewModel()
+            val settings by settingsViewModel.settings.collectAsState()
+
+            val darkTheme = when (settings?.themeMode) {
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+                else -> isSystemInDarkTheme()
+            }
+
+
+            BatterypulseTheme(
+                darkTheme = darkTheme
+            ) {
                 val viewModel: BatteryViewModel = hiltViewModel()
                 MainScreen(viewModel)
             }

@@ -162,7 +162,8 @@ private fun AppUsageList(apps: List<AppUsageStat>) {
 private fun AppUsageItem(app: AppUsageStat) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
-            modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // App Icon
             app.icon?.let { drawable ->
@@ -181,11 +182,11 @@ private fun AppUsageItem(app: AppUsageStat) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            Text(
-                "~${"%.1f".format(app.estimatedBatteryPercent)}%",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
+//            Text(
+//                "~${"%.1f".format(app.estimatedBatteryPercent)}%",
+//                style = MaterialTheme.typography.labelLarge,
+//                color = MaterialTheme.colorScheme.primary
+//            )
         }
     }
 }

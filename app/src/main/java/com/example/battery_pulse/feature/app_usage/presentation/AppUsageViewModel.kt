@@ -36,7 +36,10 @@ class AppUsageViewModel @Inject constructor(
 
     fun load() {
         viewModelScope.launch {
-            _uiState.value = AppUsageUiState.Loading
+
+            if (_uiState.value !is AppUsageUiState.Success) {
+                _uiState.value = AppUsageUiState.Loading
+            }
             try {
                 val data = getAppUsageUseCase()
 

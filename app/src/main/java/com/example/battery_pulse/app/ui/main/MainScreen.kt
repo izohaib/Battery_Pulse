@@ -1,6 +1,7 @@
 package com.example.battery_pulse.app.ui.main
 
 import android.annotation.SuppressLint
+import android.app.usage.UsageEvents
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -29,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
@@ -66,7 +68,6 @@ val navigationItems = listOf(
     )
 
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun MainScreen(
     viewModel: BatteryViewModel
@@ -78,16 +79,17 @@ fun MainScreen(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // find matching Screen object to read its flags
-    val allScreens = listOf(Screen.Home, Screen.Display, Screen.Setting, Screen.History, Screen.AppUsage, Screen.About)
-    val currentScreen = allScreens.find { it.route == currentRoute }
-
-    val showTopBar = currentScreen?.showTopAppBar ?: true
-    val showBottomBar = currentScreen?.showBottomNavBar ?: true
+    val bottomBarRoutes = listOf(
+        Screen.Home.route,
+        Screen.Display.route,
+        Screen.History.route,
+        Screen.AppUsage.route
+    )
+    val isMainRoute = currentRoute in bottomBarRoutes
 
     Scaffold(
         topBar = {
-            if (showTopBar) {
+            if (isMainRoute) {
                 TopAppBar(
                     title = { Text("Battery Pulse") },
                     actions = {
@@ -109,17 +111,17 @@ fun MainScreen(
                                 }
                             )
 
-                            DropdownMenuItem(
-                                text = { Text("About") },
-                                onClick = {
-                                    showMenu = false
-                                    navController.navigate(Screen.About.route)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Help") },
-                                onClick = { showMenu = false }
-                            )
+//                            DropdownMenuItem(
+//                                text = { Text("About") },
+//                                onClick = {
+//                                    showMenu = false
+//                                    navController.navigate(Screen.About.route)
+//                                }
+//                            )
+//                            DropdownMenuItem(
+//                                text = { Text("Help") },
+//                                onClick = { showMenu = false }
+//                            )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -130,7 +132,7 @@ fun MainScreen(
             }
         },
         bottomBar = {
-            if (showBottomBar) {
+            if (isMainRoute) {
                 BottomNavigationBar(navController = navController)
             }
         }
@@ -138,7 +140,10 @@ fun MainScreen(
         AppNavHost(
             navController = navController,
             viewModel = viewModel,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(
+                top = if (isMainRoute) paddingValues.calculateTopPadding() else 0.dp,
+                bottom = if (isMainRoute) paddingValues.calculateBottomPadding() else 0.dp
+            )
         )
     }
 }

@@ -25,6 +25,8 @@ import androidx.navigation.NavController
 import com.example.battery_pulse.core.utils.previewDate
 import com.example.battery_pulse.feature.on_display.presentation.fullScreenIntentActivity.ChargingDisplayActivity
 import com.example.battery_pulse.feature.on_display.presentation.components.PhoneMockupCard
+import com.example.battery_pulse.core.components.SectionHeader
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Screen
@@ -207,7 +209,7 @@ fun DisplayScreen(
         }
     }
 
-    // ── Bottom Sheets (unchanged) ─────────────────────────────────────────
+    // ── Bottom Sheets
     if (showDisplaySettingsSheet) {
         ModalBottomSheet(
             onDismissRequest = { showDisplaySettingsSheet = false },
@@ -378,17 +380,8 @@ fun DisplayScreen(
     }
 }
 
-// ── Reusable components — sizes unchanged from original ───────────────────────
+// ── Reusable components  ───────────────────────
 
-@Composable
-private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(start = 4.dp, bottom = 2.dp)
-    )
-}
 
 @Composable
 private fun SettingsNavItem(

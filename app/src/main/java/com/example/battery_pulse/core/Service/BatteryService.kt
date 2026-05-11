@@ -22,6 +22,8 @@ import com.example.battery_pulse.R
 import com.example.battery_pulse.app.MainActivity
 import com.example.battery_pulse.feature.on_display.presentation.fullScreenIntentActivity.ChargingDisplayActivity
 import com.example.battery_pulse.feature.history.domain.repository.ChargingHistoryRepository
+import com.example.battery_pulse.feature.setting.domain.model.SettingsEntity
+import com.example.battery_pulse.feature.setting.domain.repository.SettingsRepository
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -30,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+
 // for foreground service and full screen intent launching
 
 
@@ -38,9 +41,20 @@ import kotlinx.coroutines.launch
 interface BatteryServiceEntryPoint {
     fun chargingHistoryRepository(): ChargingHistoryRepository
 }
-class BatteryService : Service() {
 
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface SettingsServiceEntryPoint {
+    fun settingsRepository(): SettingsRepository
+}
+
+class BatteryService : Service() {
+    private var dischargeAlertShown = false
     private var alertShown = false
+    private var fullAlertShown = false
+
+
+    private var currentSettings = SettingsEntity()
 
     companion object {
         const val FOREGROUND_CHANNEL_ID = "battery_foreground"
@@ -64,19 +78,36 @@ class BatteryService : Service() {
             BatteryServiceEntryPoint::class.java
         ).chargingHistoryRepository()
     }
+
+    private fun getSettingsRepository(): SettingsRepository {
+        return EntryPointAccessors.fromApplication(
+            applicationContext,
+            SettingsServiceEntryPoint::class.java
+        ).settingsRepository()
+    }
+
+    private fun observeSettings() {
+        serviceScope.launch {                      // ← ONE coroutine, started once
+            getSettingsRepository().getSettings()
+                .collect { settings ->             // ← ONE collector, runs forever
+                    currentSettings = settings     // ← just updates a variable
+                }
+        }
+    }
+
     private val batteryReceiver = object : BroadcastReceiver() {
 
-
         override fun onReceive(context: Context?, intent: Intent?) {
-
             when (intent?.action) {
-
                 Intent.ACTION_BATTERY_CHANGED -> {
                     val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0)
                     val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
                     val percent = (level * 100) / scale
                     lastPercent = percent
-                    Log.d("BatteryService", "BATTERY_CHANGED: percent=$percent, lastPercent=$lastPercent")
+                    Log.d(
+                        "BatteryService",
+                        "BATTERY_CHANGED: percent=$percent, lastPercent=$lastPercent"
+                    )
 
                     val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
                     val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING
@@ -111,26 +142,52 @@ class BatteryService : Service() {
                     updateForegroundNotification("$percent% • $pluggedStatus • $healthStatus")
 
                     // Battery reached 100% — stop service
-                    if (percent >= 100) {
+                    if (percent >= 100 && !fullAlertShown) {
+                        fullAlertShown = true
                         showAlertNotification(
                             "Battery Full!",
                             "Your battery is fully charged — unplug your charger"
                         )
-                        stopSelf()
+
                         return
                     }
+                    if (percent < 100) fullAlertShown = false
 
-                    // Battery reached user set target
-                    val targetPercent = getSharedPreferences("battery_prefs", MODE_PRIVATE)
-                        .getInt("target_percent", 90)
-
-                    if (percent >= targetPercent && !alertShown) {
+                    // notification battery reached
+                    // Charge limit notification
+                    if (isCharging && currentSettings.chargeLimitEnabled &&
+                        percent >= currentSettings.chargeLimitPercent && !alertShown
+                    ) {
                         alertShown = true
                         showAlertNotification(
                             "Battery Limit Reached!",
                             "Battery is at $percent% — unplug your charger"
                         )
                     }
+                    if (percent < currentSettings.chargeLimitPercent) alertShown = false
+
+// Discharge limit notification
+                    if (!isCharging && currentSettings.dischargeLimitEnabled &&
+                        percent <= currentSettings.dischargeLimitPercent && !dischargeAlertShown
+                    ) {
+                        dischargeAlertShown = true
+                        showAlertNotification(
+                            "Battery Low!",
+                            "Battery dropped to $percent% — plug in your charger"
+                        )
+                    }
+                    if (percent > currentSettings.dischargeLimitPercent) dischargeAlertShown = false
+                    // Battery reached user set target
+//                    val targetPercent = getSharedPreferences("battery_prefs", MODE_PRIVATE)
+//                        .getInt("target_percent", 90)
+//
+//                    if (percent >= targetPercent && !alertShown) {
+//                        alertShown = true
+//                        showAlertNotification(
+//                            "Battery Limit Reached!",
+//                            "Battery is at $percent% — unplug your charger"
+//                        )
+//                    }
 
 
                     // sends a message to anyone in the app who is listening
@@ -158,6 +215,7 @@ class BatteryService : Service() {
                     // user plugged charger during grace period → cancel the stop timer
                     stopHandler.removeCallbacks(stopRunnable)
                     alertShown = false
+                    fullAlertShown = false
                     updateForegroundNotification("🔌 Charger connected")
 
                     Log.d("BatteryService", "POWER_CONNECTED fired — lastPercent=$lastPercent")
@@ -205,7 +263,6 @@ class BatteryService : Service() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-
         Log.d("Created Notification Channel", "Creating Foreground Service")
     }
 
@@ -219,6 +276,7 @@ class BatteryService : Service() {
         }
 
         stopHandler.removeCallbacks(stopRunnable)
+        observeSettings()
 
         //internally called manager?.notify(1, notification)
         startForeground(1, createForegroundNotification("🔌 Charger connected"))
@@ -267,7 +325,6 @@ class BatteryService : Service() {
         manager?.createNotificationChannel(alertChannel)
 
     }
-
 
 
     @SuppressLint("FullScreenIntentPolicy")

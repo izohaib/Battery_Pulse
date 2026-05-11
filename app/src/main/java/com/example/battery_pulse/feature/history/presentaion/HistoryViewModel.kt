@@ -59,7 +59,6 @@ class HistoryViewModel @Inject constructor(
         }
 
 
-
         // Commit to DB after 5 seconds
         val job = viewModelScope.launch {
             delay(5_000)
