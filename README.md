@@ -1,3 +1,7 @@
+
+
+
+
 # Battery Pulse
 
 > A professional Android app that turns your lock screen into a real-time battery monitor — firing a full-screen charging display the moment you plug in.
@@ -9,7 +13,7 @@
 
 ## Demo
 
-https://github.com/user-attachments/assets/516b91ab-fa01-497f-a9d5-9061ee49cd09
+https://github.com/user-attachments/assets/6ff1b842-a93c-4494-8f31-412ecae2fbab
 
 ---
 
